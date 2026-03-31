@@ -243,12 +243,18 @@
             <a href="index.html" class="nav-btn">Dashboard</a>
             <a href="income.html" class="nav-btn active">Income</a>
             <a href="expense.html" class="nav-btn">Expense</a>
+            <a href="pricing.html" class="nav-btn">Pricing</a>
+            <select id="currency-selector" class="nav-btn" style="background: white; color: #4CAF50; border: none; cursor: pointer; height: 38px;" onchange="setCurrency(this.value)">
+                <option value="INR">INR (₹)</option>
+                <option value="USD">USD ($)</option>
+            </select>
             <span id="logout-btn" class="nav-btn logout">Logout</span>
         </div>
     </nav>
 
     <!-- Income Section -->
     <div id="income-section">
+        <div id="trial-banner"></div>
         <h1>Income</h1>
         
         <div class="balance-summary">

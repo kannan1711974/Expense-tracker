@@ -2,6 +2,16 @@
 let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
 let currentUser = localStorage.getItem('currentUser');
 
+// Currency handling
+let currentCurrency = localStorage.getItem('preferredCurrency') || 'INR';
+const exchangeRate = 83; // 1 USD = 83 INR
+
+function setCurrency(curr) {
+    currentCurrency = curr;
+    localStorage.setItem('preferredCurrency', curr);
+    updateDisplay();
+}
+
 // Get users from localStorage or initialize with default
 function getUsers() {
     const users = localStorage.getItem('users');
@@ -82,7 +92,12 @@ registerForm.addEventListener('submit', function(e) {
     }
     
     // Add new user
-    users.push({ username, password });
+    users.push({ 
+        username, 
+        password, 
+        plan: 'trial', 
+        signupDate: new Date().toISOString() 
+    });
     saveUsers(users);
     
     // Show success and switch to login
@@ -170,6 +185,13 @@ if (document.getElementById('income-form')) {
     const description = document.getElementById('income-description').value;
     const amount = parseFloat(document.getElementById('income-amount').value);
     const date = document.getElementById('income-date').value;
+
+    const subInfo = getSubscriptionInfo();
+    if (currentUser !== 'admin' && subInfo && subInfo.plan === 'trial' && subInfo.status === 'expired') {
+        alert('Trial expired. Please upgrade to a plan.');
+        window.location.href = 'pricing.html';
+        return;
+    }
     
     if (!currentUser) {
         alert('Session expired. Please login again.');
@@ -204,6 +226,13 @@ if (document.getElementById('expense-form')) {
     const amount = parseFloat(document.getElementById('expense-amount').value);
     const category = document.getElementById('expense-category').value;
     const date = document.getElementById('expense-date').value;
+
+    const subInfo = getSubscriptionInfo();
+    if (currentUser !== 'admin' && subInfo && subInfo.plan === 'trial' && subInfo.status === 'expired') {
+        alert('Trial expired. Please upgrade to a plan.');
+        window.location.href = 'pricing.html';
+        return;
+    }
     
     if (!currentUser) {
         alert('Session expired. Please login again.');
@@ -240,6 +269,7 @@ function updateDisplay() {
     updateDashboard();
     updateIncomeList();
     updateExpenseList();
+    if (typeof renderExpenseChart === 'function') renderExpenseChart();
 }
 
 // Update Dashboard
@@ -264,6 +294,23 @@ function updateDashboard() {
     }
     if (document.getElementById('total-expense')) {
         document.getElementById('total-expense').textContent = formatCurrency(totalExpense);
+    }
+
+    // Trial status banner
+    const subInfo = getSubscriptionInfo();
+    const trialBanner = document.getElementById('trial-banner');
+    if (trialBanner && subInfo && currentUser !== 'admin') {
+        if (subInfo.plan === 'trial') {
+            if (subInfo.status === 'active') {
+                trialBanner.innerHTML = `<div style="background: #fff3cd; color: #856404; padding: 15px; text-align: center; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ffeeba;">
+                    Free Trial: <strong>${subInfo.daysLeft} days</strong> remaining. <a href="pricing.html" style="color: #856404; font-weight: bold; text-decoration: underline;">Upgrade to Pro</a>
+                </div>`;
+            } else {
+                trialBanner.innerHTML = `<div style="background: #f8d7da; color: #721c24; padding: 15px; text-align: center; border-radius: 8px; margin-bottom: 20px; border: 1px solid #f5c6cb;">
+                    Trial expired! <a href="pricing.html" style="color: #721c24; font-weight: bold; text-decoration: underline;">Choose a plan to continue tracking</a>
+                </div>`;
+            }
+        }
     }
     
     // Recent transactions (last 5)
@@ -341,6 +388,9 @@ function deleteTransaction(id) {
 
 // Format currency
 function formatCurrency(amount) {
+    if (currentCurrency === 'USD') {
+        return '$' + amount.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    }
     return '₹' + amount.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
 }
 
@@ -361,6 +411,11 @@ if (document.getElementById('expense-date')) {
 // Initialize
 updateDisplay();
 
+// Set currency selector value if it exists
+if (document.getElementById('currency-selector')) {
+    document.getElementById('currency-selector').value = currentCurrency;
+}
+
 // Admin Dashboard Logic
 const adminUsersTable = document.getElementById('admin-users-body');
 const adminTransactionsTable = document.getElementById('admin-transactions-body');
@@ -380,6 +435,7 @@ function updateAdminDisplay() {
             <tr>
                 <td>${u.username}</td>
                 <td>${u.password}</td>
+                <td><span class="badge ${u.plan === 'trial' ? 'expense' : 'income'}">${u.plan || 'N/A'}</span></td>
             </tr>
         `).join('');
     }
@@ -415,4 +471,99 @@ function showToast(message) {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
+}
+
+// Subscription Logic
+function getSubscriptionInfo() {
+    const users = getUsers();
+    const user = users.find(u => u.username === currentUser);
+    if (!user) return null;
+    
+    if (user.plan && user.plan !== 'trial') {
+        return { plan: user.plan, status: 'active' };
+    }
+    
+    const signupDate = new Date(user.signupDate || Date.now());
+    const now = new Date();
+    const diffTime = now - signupDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 3) {
+        return { plan: 'trial', status: 'active', daysLeft: 3 - diffDays };
+    }
+    return { plan: 'trial', status: 'expired' };
+}
+
+function processPayment(planName, method) {
+    const prices = { 'Basic': 1, 'Pro': 3, 'Premium': 5 };
+    const usdPrice = prices[planName];
+    const inrPrice = usdPrice * exchangeRate;
+    const paymentId = method === 'PayPal' ? 'igriseking' : 'gurucharu65@oksbi';
+    
+    let paymentUrl = '';
+    let displayPrice = '';
+
+    if (method === 'PayPal') {
+        // Always use the exact dollar amount for PayPal redirection
+        paymentUrl = `https://www.paypal.me/${paymentId}/${usdPrice}`;
+        displayPrice = `$${usdPrice}`;
+    } else {
+        // Use the converted INR amount for GPay/UPI
+        paymentUrl = `upi://pay?pa=${paymentId}&pn=ExpenseTracker&am=${inrPrice}&cu=INR`;
+        displayPrice = `₹${inrPrice}`;
+    }
+
+    window.open(paymentUrl, '_blank');
+    const confirmPay = confirm(`Opening ${method} in a new window...\n\nRecipient: ${paymentId}\nAmount: ${displayPrice}\n\nDid you complete the payment? Click OK to activate your ${planName} plan.`);
+    
+    if (confirmPay) {
+        updatePlan(planName);
+    }
+}
+
+function updatePlan(planName) {
+    const users = getUsers();
+    const userIndex = users.findIndex(u => u.username === currentUser);
+    if (userIndex !== -1) {
+        users[userIndex].plan = planName;
+        saveUsers(users);
+        showToast(`Successfully upgraded to ${planName} plan!`);
+        setTimeout(() => window.location.href = 'index.html', 1500);
+    }
+}
+
+// Charts for higher amount plans (Pro and Premium)
+function renderExpenseChart() {
+    const chartCanvas = document.getElementById('expenseChart');
+    if (!chartCanvas) return;
+
+    const info = getSubscriptionInfo();
+    const chartContainer = document.getElementById('chart-container');
+    
+    // Show charts for Pro ($3) and Premium ($5)
+    if (info && (info.plan === 'Pro' || info.plan === 'Premium') && typeof Chart !== 'undefined') {
+        chartContainer.style.display = 'block';
+        
+        const userTransactions = transactions.filter(t => t.user === currentUser && t.type === 'expense');
+        const categories = {};
+        userTransactions.forEach(t => {
+            categories[t.category] = (categories[t.category] || 0) + t.amount;
+        });
+
+        if (window.myChart) window.myChart.destroy();
+        
+        window.myChart = new Chart(chartCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(categories).map(c => c.charAt(0).toUpperCase() + c.slice(1)),
+                datasets: [{
+                    data: Object.values(categories),
+                    backgroundColor: ['#4CAF50', '#2196F3', '#FFC107', '#E91E63', '#9C27B0', '#FF5722']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    } else {
+        chartContainer.style.display = 'none';
+    }
 }

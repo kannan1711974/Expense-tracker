@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - Expense Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: #4CAF50; color: white; }
+        .nav-btn { color: white; text-decoration: none; padding: 10px; }
+        .container { max-width: 1000px; margin: 40px auto; padding: 20px; text-align: center; }
+        .pricing-grid { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 30px; }
+        .pricing-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 280px; transition: transform 0.3s; }
+        .pricing-card:hover { transform: translateY(-5px); }
+        .pricing-card h3 { color: #333; margin-top: 0; }
+        .price { font-size: 36px; font-weight: bold; color: #4CAF50; margin: 20px 0; }
+        .price span { font-size: 16px; color: #666; font-weight: normal; }
+        .features { list-style: none; padding: 0; margin: 20px 0; text-align: left; }
+        .features li { padding: 8px 0; border-bottom: 1px solid #eee; color: #555; }
+        .features li::before { content: "✓ "; color: #4CAF50; font-weight: bold; }
+        .btn-upgrade { width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .btn-upgrade:hover { background: #45a049; }
+        .payment-methods { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
+        .btn-pay { padding: 10px; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+        .btn-paypal { background: #ffc439; color: #003087; border-color: #ffc439; }
+        .btn-gpay { background: #000; color: #fff; border-color: #000; }
+        .btn-pay:hover { opacity: 0.9; transform: scale(1.02); }
+        .trial-info { background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #2e7d32; display: inline-block; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><h2>💰 Expense Tracker</h2></div>
+        <div class="nav-menu">
+            <a href="index.html" class="nav-btn">Dashboard</a>
+            <select id="currency-selector" class="nav-btn" style="background: white; color: #4CAF50; border: none; cursor: pointer;" onchange="setCurrency(this.value); refreshPricing();">
+                <option value="INR">INR (₹)</option>
+                <option value="USD">USD ($)</option>
+            </select>
+            <span id="logout-btn" class="nav-btn" style="cursor:pointer">Logout</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="trial-info">✨ All new accounts start with a <strong>3-day free trial</strong>!</div>
+        <h1>Choose Your Plan</h1>
+        <p>Unlock more features and take control of your finances</p>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3>Basic</h3>
+                <div class="price" id="price-basic">$1<span>/mo</span></div>
+                <ul class="features">
+                    <li>Unlimited tracking</li>
+                    <li>Mobile Friendly</li>
+                </ul>
+                <div class="payment-methods">
+                    <button class="btn-pay btn-paypal" onclick="processPayment('Basic', 'PayPal')">PayPal</button>
+                    <button class="btn-pay btn-gpay" onclick="processPayment('Basic', 'GPay')">G Pay</button>
+                </div>
+            </div>
+            <div class="pricing-card" style="border: 2px solid #4CAF50; position: relative;">
+                <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #4CAF50; color: white; padding: 2px 10px; border-radius: 10px; font-size: 12px;">POPULAR</div>
+                <h3>Pro</h3>
+                <div class="price" id="price-pro">$3<span>/mo</span></div>
+                <ul class="features">
+                    <li>Everything in Basic</li>
+                    <li><strong>Visual Expense Charts</strong></li>
+                </ul>
+                <div class="payment-methods">
+                    <button class="btn-pay btn-paypal" onclick="processPayment('Pro', 'PayPal')">PayPal</button>
+                    <button class="btn-pay btn-gpay" onclick="processPayment('Pro', 'GPay')">G Pay</button>
+                </div>
+            </div>
+            <div class="pricing-card">
+                <h3>Premium</h3>
+                <div class="price" id="price-premium">$5<span>/mo</span></div>
+                <ul class="features">
+                    <li>Everything in Pro</li>
+                    <li>Priority Support</li>
+                </ul>
+                <div class="payment-methods">
+                    <button class="btn-pay btn-paypal" onclick="processPayment('Premium', 'PayPal')">PayPal</button>
+                    <button class="btn-pay btn-gpay" onclick="processPayment('Premium', 'GPay')">G Pay</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+    <script>
+        function refreshPricing() {
+            const curr = localStorage.getItem('preferredCurrency') || 'INR';
+            const rate = 83;
+            const prices = { basic: 1, pro: 3, premium: 5 };
+            
+            if (curr === 'USD') {
+                document.getElementById('price-basic').innerHTML = `$${prices.basic}<span>/mo</span>`;
+                document.getElementById('price-pro').innerHTML = `$${prices.pro}<span>/mo</span>`;
+                document.getElementById('price-premium').innerHTML = `$${prices.premium}<span>/mo</span>`;
+            } else {
+                document.getElementById('price-basic').innerHTML = `₹${prices.basic * rate}<span>/mo</span>`;
+                document.getElementById('price-pro').innerHTML = `₹${prices.pro * rate}<span>/mo</span>`;
+                document.getElementById('price-premium').innerHTML = `₹${prices.premium * rate}<span>/mo</span>`;
+            }
+        }
+        refreshPricing();
+    </script>
+</body>
+</html>

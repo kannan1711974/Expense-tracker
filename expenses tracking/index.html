@@ -178,12 +178,18 @@
             <a href="index.html" class="nav-btn active">Dashboard</a>
             <a href="income.html" class="nav-btn">Income</a>
             <a href="expense.html" class="nav-btn">Expense</a>
+            <a href="pricing.html" class="nav-btn">Pricing</a>
+            <select id="currency-selector" class="nav-btn" style="background: white; color: #4CAF50; border: none; cursor: pointer; height: 38px;" onchange="setCurrency(this.value)">
+                <option value="INR">INR (₹)</option>
+                <option value="USD">USD ($)</option>
+            </select>
             <span id="logout-btn" class="nav-btn logout">Logout</span>
         </div>
     </nav>
 
     <!-- Dashboard Section -->
     <div id="dashboard-section">
+        <div id="trial-banner"></div>
         <h1>Dashboard</h1>
         <div class="dashboard-cards">
             <div class="card balance-card">
@@ -199,6 +205,15 @@
                 <p class="expense-amount" id="total-expense">₹0.00</p>
             </div>
         </div>
+
+        <!-- Analytics for Pro/Premium -->
+        <div id="chart-container" class="recent-transactions" style="margin-bottom: 30px; display: none;">
+            <h3>Expense Analytics</h3>
+            <div style="height: 300px; position: relative;">
+                <canvas id="expenseChart"></canvas>
+            </div>
+        </div>
+
         <div class="recent-transactions">
             <h3>Recent Transactions</h3>
             <div id="recent-transactions-list">
@@ -208,6 +223,7 @@
     </div>
 
     <script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // Check if user is logged in
         const currentUser = localStorage.getItem('currentUser');
